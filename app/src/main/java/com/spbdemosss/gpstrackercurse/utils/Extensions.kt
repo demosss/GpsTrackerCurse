@@ -19,7 +19,7 @@ fun AppCompatActivity.openFragment(f: Fragment){
     }
     supportFragmentManager
         .beginTransaction()
-        .setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
+        //.setCustomAnimations(android.R.anim.slide_in_left, android.R.anim.slide_out_right)
         .replace(R.id.placeHolder, f).commit()
 }
 
