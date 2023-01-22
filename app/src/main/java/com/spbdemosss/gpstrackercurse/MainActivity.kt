@@ -2,7 +2,6 @@ package com.spbdemosss.gpstrackercurse
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.Toast
 import com.spbdemosss.gpstrackercurse.databinding.ActivityMainBinding
 import com.spbdemosss.gpstrackercurse.fragments.MainFragment
 import com.spbdemosss.gpstrackercurse.fragments.SettingsFragment
@@ -24,7 +23,7 @@ class MainActivity : AppCompatActivity() {
             when(it.itemId){
                 R.id.id_home -> openFragment(MainFragment.newInstance())
                 R.id.id_tracks -> openFragment(TrackFragment.newInstance())
-                R.id.id_settings -> openFragment(SettingsFragment.newInstance())
+                R.id.id_settings -> openFragment(SettingsFragment())
             }
             true
         }
