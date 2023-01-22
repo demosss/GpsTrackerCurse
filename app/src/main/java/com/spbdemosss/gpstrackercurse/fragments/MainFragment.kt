@@ -10,6 +10,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.spbdemosss.gpstrackercurse.databinding.FragmentMainBinding
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 
 class MainFragment : Fragment() {
@@ -24,12 +27,30 @@ class MainFragment : Fragment() {
         return binding.root
     }
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initOSM()
+    }
+
     private fun settingsOsm(){
         Configuration.getInstance().load(
             activity as AppCompatActivity,
             activity?.getSharedPreferences("osm_pref", Context.MODE_PRIVATE)
         )
         Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
+    }
+
+    private fun initOSM() {
+        binding.map.controller.setZoom(16.0)
+        //binding.map.controller.animateTo(GeoPoint(60.02545482317729, 30.24435733504501))
+        val mLocProvide = GpsMyLocationProvider(activity)
+        val mLocOverlay = MyLocationNewOverlay(mLocProvide, binding.map)
+        mLocOverlay.enableMyLocation()
+        mLocOverlay.enableFollowLocation()
+        mLocOverlay.runOnFirstFix{
+            binding.map.overlays.clear()
+            binding.map.overlays.add(mLocOverlay)
+        }
     }
 
     companion object {
