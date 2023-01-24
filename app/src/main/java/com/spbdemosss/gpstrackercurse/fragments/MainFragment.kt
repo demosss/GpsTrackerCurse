@@ -15,6 +15,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import com.spbdemosss.gpstrackercurse.R
 import com.spbdemosss.gpstrackercurse.databinding.FragmentMainBinding
 import com.spbdemosss.gpstrackercurse.location.LocationService
 import com.spbdemosss.gpstrackercurse.utils.DialogManager
@@ -27,6 +28,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 
 class MainFragment : Fragment() {
+    private var isServiceRunning = false
     private lateinit var pLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var binding: FragmentMainBinding
 
@@ -42,6 +44,44 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         registerPermissions()
+        setOnClicks()
+        checkServiceState()
+    }
+
+    private fun setOnClicks(){
+        val listener = onClicks()
+        binding.fStartStop.setOnClickListener(listener)
+    }
+
+    private fun onClicks(): View.OnClickListener{
+        return View.OnClickListener{
+            when(it.id){
+                R.id.fStartStop -> startStopService()
+            }
+        }
+    }
+
+    private fun startStopService(){
+        if (!isServiceRunning){
+            startLocService()
+            binding.fStartStop.setImageResource(R.drawable.ic_stop)
+        }
+        else {
+            activity?.stopService(Intent(activity, LocationService::class.java))
+            binding.fStartStop.setImageResource(R.drawable.ic_play)
+        }
+        isServiceRunning = !isServiceRunning
+    }
+
+    private fun checkServiceState(){
+        isServiceRunning = LocationService.isRunning
+        if (isServiceRunning) {
+            binding.fStartStop.setImageResource(R.drawable.ic_stop)
+        }
+        else binding.fStartStop.setImageResource(R.drawable.ic_play)
+    }
+
+    private fun startLocService(){
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             activity?.startForegroundService(Intent(activity, LocationService::class.java))
         } else {
