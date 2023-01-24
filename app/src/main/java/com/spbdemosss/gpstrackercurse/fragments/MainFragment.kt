@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import com.spbdemosss.gpstrackercurse.databinding.FragmentMainBinding
+import com.spbdemosss.gpstrackercurse.location.LocationService
 import com.spbdemosss.gpstrackercurse.utils.DialogManager
 import com.spbdemosss.gpstrackercurse.utils.checkPermission
 import com.spbdemosss.gpstrackercurse.utils.showToast
@@ -41,6 +42,11 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         registerPermissions()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            activity?.startForegroundService(Intent(activity, LocationService::class.java))
+        } else {
+            activity?.startService(Intent(activity, LocationService::class.java))
+        }
     }
 
     override fun onResume() {
