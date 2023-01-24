@@ -78,7 +78,7 @@ class MainFragment : Fragment() {
     private fun startTimer(){
         timer?.cancel()
         timer = Timer()
-        startTime = System.currentTimeMillis()
+        startTime = LocationService.startTime
         timer?.schedule(object : TimerTask(){
             override fun run() {
                 activity?.runOnUiThread {
@@ -111,6 +111,7 @@ class MainFragment : Fragment() {
         isServiceRunning = LocationService.isRunning
         if (isServiceRunning) {
             binding.fStartStop.setImageResource(R.drawable.ic_stop)
+            startTimer()
         }
         else binding.fStartStop.setImageResource(R.drawable.ic_play)
     }
@@ -121,6 +122,7 @@ class MainFragment : Fragment() {
         } else {
             activity?.startService(Intent(activity, LocationService::class.java))
         }
+        LocationService.startTime = System.currentTimeMillis()
         startTimer()
         binding.fStartStop.setImageResource(R.drawable.ic_stop)
     }
