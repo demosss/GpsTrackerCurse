@@ -18,8 +18,10 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.MutableLiveData
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.spbdemosss.gpstrackercurse.MainViewModel
 import com.spbdemosss.gpstrackercurse.R
 import com.spbdemosss.gpstrackercurse.databinding.FragmentMainBinding
 import com.spbdemosss.gpstrackercurse.location.LocationModel
@@ -42,9 +44,10 @@ class MainFragment : Fragment() {
     private var isServiceRunning = false
     private var timer: Timer? = null
     private var startTime = 0L
-    private val timeData = MutableLiveData<String>()
+
     private lateinit var pLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var binding: FragmentMainBinding
+    private val model: MainViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -62,6 +65,7 @@ class MainFragment : Fragment() {
         checkServiceState()
         updateTime()
         registerLocReceiver()
+        locationUpdates()
     }
 
     private fun setOnClicks(){
@@ -77,8 +81,17 @@ class MainFragment : Fragment() {
         }
     }
 
+    private fun locationUpdates(){
+        model.locationUpdates.observe(viewLifecycleOwner){
+            val distance = "Distance: ${String.format("%.1f", it.distance)} m"
+            val velocity = "Velocity: ${String.format("%.1f", 3.6 * it.velocity)} km/h"
+            binding.tvDistance.text = distance
+            binding.tvVelocity.text = velocity
+        }
+    }
+
     private fun updateTime(){
-        timeData.observe(viewLifecycleOwner){
+        model.timeData.observe(viewLifecycleOwner){
             binding.tvTime.text = it
         }
     }
@@ -90,7 +103,7 @@ class MainFragment : Fragment() {
         timer?.schedule(object : TimerTask(){
             override fun run() {
                 activity?.runOnUiThread {
-                    timeData.value = getCurrentTime()
+                    model.timeData.value = getCurrentTime()
                 }
             }
 
@@ -235,7 +248,7 @@ class MainFragment : Fragment() {
                 } else {
                     i.getSerializableExtra(LocationService.LOC_MODEL_INTENT) as LocationModel
                 }
-                //Log.d("MyLog", "MainFrag Distance: ${locModel?.distance}")
+                model.locationUpdates.value = locModel
             }
         }
     }

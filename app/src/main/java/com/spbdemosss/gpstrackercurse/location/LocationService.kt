@@ -105,7 +105,7 @@ class LocationService : Service() {
     }
 
     private fun initLocation(){
-        var minimalDistance = 3F
+        var minimalDistance = 3.0F
         locRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000).apply {
             setMinUpdateDistanceMeters(minimalDistance)
             setGranularity(Granularity.GRANULARITY_PERMISSION_LEVEL)
