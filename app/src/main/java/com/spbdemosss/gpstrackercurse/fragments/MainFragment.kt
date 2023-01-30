@@ -1,12 +1,15 @@
 package com.spbdemosss.gpstrackercurse.fragments
 
 import android.Manifest
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
@@ -16,8 +19,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.MutableLiveData
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.spbdemosss.gpstrackercurse.R
 import com.spbdemosss.gpstrackercurse.databinding.FragmentMainBinding
+import com.spbdemosss.gpstrackercurse.location.LocationModel
 import com.spbdemosss.gpstrackercurse.location.LocationService
 import com.spbdemosss.gpstrackercurse.utils.DialogManager
 import com.spbdemosss.gpstrackercurse.utils.TimeUtils
@@ -27,10 +32,12 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import java.io.Serializable
 import java.util.Timer
 import java.util.TimerTask
 
 
+@Suppress("DEPRECATION")
 class MainFragment : Fragment() {
     private var isServiceRunning = false
     private var timer: Timer? = null
@@ -54,6 +61,7 @@ class MainFragment : Fragment() {
         setOnClicks()
         checkServiceState()
         updateTime()
+        registerLocReceiver()
     }
 
     private fun setOnClicks(){
@@ -141,7 +149,7 @@ class MainFragment : Fragment() {
     }
 
     private fun initOSM() {
-        binding.map.controller.setZoom(16.0)
+
         //binding.map.controller.animateTo(GeoPoint(60.02545482317729, 30.24435733504501))
         val mLocProvide = GpsMyLocationProvider(activity)
         val mLocOverlay = MyLocationNewOverlay(mLocProvide, binding.map)
@@ -151,6 +159,7 @@ class MainFragment : Fragment() {
             binding.map.overlays.clear()
             binding.map.overlays.add(mLocOverlay)
         }
+        binding.map.controller.setZoom(16.0)
     }
 
     private fun registerPermissions() {
@@ -218,6 +227,24 @@ class MainFragment : Fragment() {
         }
     }
 
+    private val receiver = object : BroadcastReceiver(){
+        override fun onReceive(context: Context?, i: Intent?) {
+            if(i?.action == LocationService.LOC_MODEL_INTENT){
+                val locModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+                    i.getSerializableExtra(LocationService.LOC_MODEL_INTENT, LocationModel::class.java)
+                } else {
+                    i.getSerializableExtra(LocationService.LOC_MODEL_INTENT) as LocationModel
+                }
+                //Log.d("MyLog", "MainFrag Distance: ${locModel?.distance}")
+            }
+        }
+    }
+
+    private fun registerLocReceiver(){
+        val locFilter = IntentFilter(LocationService.LOC_MODEL_INTENT)
+        LocalBroadcastManager.getInstance(activity as AppCompatActivity)
+            .registerReceiver(receiver, locFilter)
+    }
 
 
     companion object {
