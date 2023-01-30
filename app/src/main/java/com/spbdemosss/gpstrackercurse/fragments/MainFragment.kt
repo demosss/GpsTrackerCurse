@@ -84,9 +84,11 @@ class MainFragment : Fragment() {
     private fun locationUpdates(){
         model.locationUpdates.observe(viewLifecycleOwner){
             val distance = "Distance: ${String.format("%.1f", it.distance)} m"
-            val velocity = "Velocity: ${String.format("%.1f", 3.6 * it.velocity)} km/h"
+            val velocity = "Velocity: ${String.format("%.1f", 3.6f * it.velocity)} km/h"
+            val aVelocity = "Average velocity: ${getAverageSpeed(it.distance)} km/h"
             binding.tvDistance.text = distance
             binding.tvVelocity.text = velocity
+            binding.tvAverageVel.text = aVelocity
         }
     }
 
@@ -109,6 +111,11 @@ class MainFragment : Fragment() {
 
         }, 1, 1)
     }
+
+    private fun getAverageSpeed(distance: Float): String {
+        return String.format("%.2f", 3.6f * (distance * 1000.0f / (System.currentTimeMillis() - startTime)))
+    }
+
 
     private fun getCurrentTime(): String {
         return "Time: ${TimeUtils.getTime(System.currentTimeMillis() - startTime)}"
