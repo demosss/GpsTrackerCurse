@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.Color
 import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
@@ -32,6 +33,8 @@ import com.spbdemosss.gpstrackercurse.utils.checkPermission
 import com.spbdemosss.gpstrackercurse.utils.showToast
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.io.Serializable
@@ -41,10 +44,11 @@ import java.util.TimerTask
 
 @Suppress("DEPRECATION")
 class MainFragment : Fragment() {
+    private var pl: Polyline? = null
     private var isServiceRunning = false
+    private var firstStart = true
     private var timer: Timer? = null
     private var startTime = 0L
-
     private lateinit var pLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var binding: FragmentMainBinding
     private val model: MainViewModel by activityViewModels()
@@ -68,41 +72,42 @@ class MainFragment : Fragment() {
         locationUpdates()
     }
 
-    private fun setOnClicks(){
+    private fun setOnClicks() {
         val listener = onClicks()
         binding.fStartStop.setOnClickListener(listener)
     }
 
-    private fun onClicks(): View.OnClickListener{
-        return View.OnClickListener{
-            when(it.id){
+    private fun onClicks(): View.OnClickListener {
+        return View.OnClickListener {
+            when (it.id) {
                 R.id.fStartStop -> startStopService()
             }
         }
     }
 
-    private fun locationUpdates(){
-        model.locationUpdates.observe(viewLifecycleOwner){
+    private fun locationUpdates() {
+        model.locationUpdates.observe(viewLifecycleOwner) {
             val distance = "Distance: ${String.format("%.1f", it.distance)} m"
             val velocity = "Velocity: ${String.format("%.1f", 3.6f * it.velocity)} km/h"
             val aVelocity = "Average velocity: ${getAverageSpeed(it.distance)} km/h"
             binding.tvDistance.text = distance
             binding.tvVelocity.text = velocity
             binding.tvAverageVel.text = aVelocity
+            updatePolyLine(it.geoPointList)
         }
     }
 
-    private fun updateTime(){
-        model.timeData.observe(viewLifecycleOwner){
+    private fun updateTime() {
+        model.timeData.observe(viewLifecycleOwner) {
             binding.tvTime.text = it
         }
     }
 
-    private fun startTimer(){
+    private fun startTimer() {
         timer?.cancel()
         timer = Timer()
         startTime = LocationService.startTime
-        timer?.schedule(object : TimerTask(){
+        timer?.schedule(object : TimerTask() {
             override fun run() {
                 activity?.runOnUiThread {
                     model.timeData.value = getCurrentTime()
@@ -113,7 +118,10 @@ class MainFragment : Fragment() {
     }
 
     private fun getAverageSpeed(distance: Float): String {
-        return String.format("%.2f", 3.6f * (distance * 1000.0f / (System.currentTimeMillis() - startTime)))
+        return String.format(
+            "%.2f",
+            3.6f * (distance * 1000.0f / (System.currentTimeMillis() - startTime))
+        )
     }
 
 
@@ -122,11 +130,10 @@ class MainFragment : Fragment() {
     }
 
 
-    private fun startStopService(){
-        if (!isServiceRunning){
+    private fun startStopService() {
+        if (!isServiceRunning) {
             startLocService()
-        }
-        else {
+        } else {
             timer?.cancel()
             activity?.stopService(Intent(activity, LocationService::class.java))
             binding.fStartStop.setImageResource(R.drawable.ic_play)
@@ -135,16 +142,15 @@ class MainFragment : Fragment() {
         isServiceRunning = !isServiceRunning
     }
 
-    private fun checkServiceState(){
+    private fun checkServiceState() {
         isServiceRunning = LocationService.isRunning
         if (isServiceRunning) {
             binding.fStartStop.setImageResource(R.drawable.ic_stop)
             startTimer()
-        }
-        else binding.fStartStop.setImageResource(R.drawable.ic_play)
+        } else binding.fStartStop.setImageResource(R.drawable.ic_play)
     }
 
-    private fun startLocService(){
+    private fun startLocService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             activity?.startForegroundService(Intent(activity, LocationService::class.java))
         } else {
@@ -169,8 +175,10 @@ class MainFragment : Fragment() {
     }
 
     private fun initOSM() {
-
+        pl = Polyline()
+        pl?.outlinePaint?.color = Color.RED
         //binding.map.controller.animateTo(GeoPoint(60.02545482317729, 30.24435733504501))
+        binding.map.controller.setZoom(16.0)
         val mLocProvide = GpsMyLocationProvider(activity)
         val mLocOverlay = MyLocationNewOverlay(mLocProvide, binding.map)
         mLocOverlay.enableMyLocation()
@@ -178,8 +186,8 @@ class MainFragment : Fragment() {
         mLocOverlay.runOnFirstFix {
             binding.map.overlays.clear()
             binding.map.overlays.add(mLocOverlay)
+            binding.map.overlays.add(pl)
         }
-        binding.map.controller.setZoom(16.0)
     }
 
     private fun registerPermissions() {
@@ -229,13 +237,13 @@ class MainFragment : Fragment() {
         }
     }
 
-    private fun checkLocationEnabled(){
+    private fun checkLocationEnabled() {
         val lManager = activity?.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         val isEnabled = lManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        if(!isEnabled){
+        if (!isEnabled) {
             DialogManager.showLocEnableDialog(
                 activity as AppCompatActivity,
-                object : DialogManager.Listener{
+                object : DialogManager.Listener {
                     override fun onClick() {
                         startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                     }
@@ -247,11 +255,14 @@ class MainFragment : Fragment() {
         }
     }
 
-    private val receiver = object : BroadcastReceiver(){
+    private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, i: Intent?) {
-            if(i?.action == LocationService.LOC_MODEL_INTENT){
-                val locModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
-                    i.getSerializableExtra(LocationService.LOC_MODEL_INTENT, LocationModel::class.java)
+            if (i?.action == LocationService.LOC_MODEL_INTENT) {
+                val locModel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    i.getSerializableExtra(
+                        LocationService.LOC_MODEL_INTENT,
+                        LocationModel::class.java
+                    )
                 } else {
                     i.getSerializableExtra(LocationService.LOC_MODEL_INTENT) as LocationModel
                 }
@@ -260,10 +271,35 @@ class MainFragment : Fragment() {
         }
     }
 
-    private fun registerLocReceiver(){
+    private fun registerLocReceiver() {
         val locFilter = IntentFilter(LocationService.LOC_MODEL_INTENT)
         LocalBroadcastManager.getInstance(activity as AppCompatActivity)
             .registerReceiver(receiver, locFilter)
+    }
+
+    private fun addPoint(list: List<GeoPoint>) {
+        pl?.addPoint(list[list.size - 1])
+    }
+
+    private fun fillPolyLine(list: List<GeoPoint>) {
+        list.forEach {
+            pl?.addPoint(it)
+        }
+    }
+
+    private fun updatePolyLine(list: List<GeoPoint>) {
+        if (list.size > 1 && firstStart ){
+            fillPolyLine(list)
+            firstStart = false
+        } else {
+            addPoint(list)
+        }
+    }
+
+    override fun onDetach() {
+        super.onDetach()
+        LocalBroadcastManager.getInstance(activity as AppCompatActivity)
+            .unregisterReceiver(receiver)
     }
 
 
