@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.widget.Toast
 import com.spbdemosss.gpstrackercurse.R
 import com.spbdemosss.gpstrackercurse.databinding.SaveDialogBinding
+import com.spbdemosss.gpstrackercurse.db.TrackItem
 
 object DialogManager {
     fun showLocEnableDialog(context: Context, listener: Listener){
@@ -24,11 +25,20 @@ object DialogManager {
         dialog.show()
     }
 
-    fun showSaveDialog(context: Context, listener: Listener){
+    fun showSaveDialog(context: Context, item: TrackItem?, listener: Listener){
         val builder = AlertDialog.Builder(context)
         val binding = SaveDialogBinding.inflate(LayoutInflater.from(context), null, false)
         builder.setView(binding.root)
         val dialog = builder.create()
+
+        val time = "${item?.time}"
+        val velocity = "Velocity: ${item?.velocity} km/h"
+        val distance = "Distance: ${item?.distance} km"
+
+        binding.tvTime.text = time
+        binding.tvSpeed.text = velocity
+        binding.tvDistance.text = distance
+
         binding.bSave.setOnClickListener {
             listener.onClick()
             dialog.dismiss()

@@ -23,6 +23,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.spbdemosss.gpstrackercurse.MainViewModel
 import com.spbdemosss.gpstrackercurse.R
 import com.spbdemosss.gpstrackercurse.databinding.FragmentMainBinding
+import com.spbdemosss.gpstrackercurse.db.TrackItem
 import com.spbdemosss.gpstrackercurse.location.LocationModel
 import com.spbdemosss.gpstrackercurse.location.LocationService
 import com.spbdemosss.gpstrackercurse.utils.DialogManager
@@ -41,6 +42,7 @@ import java.util.TimerTask
 
 @Suppress("DEPRECATION")
 class MainFragment : Fragment() {
+    private var trackItem: TrackItem? = null
     private var pl: Polyline? = null
     private var isServiceRunning = false
     private var firstStart = true
@@ -90,6 +92,14 @@ class MainFragment : Fragment() {
             binding.tvDistance.text = distance
             binding.tvVelocity.text = velocity
             binding.tvAverageVel.text = aVelocity
+            trackItem = TrackItem(
+                null,
+                getCurrentTime(),
+                TimeUtils.getDate(),
+                String.format("%.1f", it.distance / 1000),
+                getAverageSpeed(it.distance),
+                "0101"
+            )
             updatePolyLine(it.geoPointList)
         }
     }
@@ -132,7 +142,10 @@ class MainFragment : Fragment() {
             startLocService()
         } else {
             timer?.cancel()
-            DialogManager.showSaveDialog(requireContext(), object : DialogManager.Listener{
+
+            DialogManager.showSaveDialog(requireContext(),
+                trackItem,
+                object : DialogManager.Listener{
                 override fun onClick() {
                     showToast("Track saved!!!")
                 }
