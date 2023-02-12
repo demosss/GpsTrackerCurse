@@ -132,6 +132,11 @@ class MainFragment : Fragment() {
             startLocService()
         } else {
             timer?.cancel()
+            DialogManager.showSaveDialog(requireContext(), object : DialogManager.Listener{
+                override fun onClick() {
+                    showToast("Track saved!!!")
+                }
+            })
             activity?.stopService(Intent(activity, LocationService::class.java))
             binding.fStartStop.setImageResource(R.drawable.ic_play)
 
