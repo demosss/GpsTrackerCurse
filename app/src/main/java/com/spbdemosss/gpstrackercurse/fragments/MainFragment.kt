@@ -21,6 +21,7 @@ import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.activityViewModels
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import com.spbdemosss.gpstrackercurse.MainApp
 import com.spbdemosss.gpstrackercurse.MainViewModel
 import com.spbdemosss.gpstrackercurse.R
 import com.spbdemosss.gpstrackercurse.databinding.FragmentMainBinding
@@ -51,7 +52,9 @@ class MainFragment : Fragment() {
     private var startTime = 0L
     private lateinit var pLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var binding: FragmentMainBinding
-    private val model: MainViewModel by activityViewModels()
+    private val model: MainViewModel by activityViewModels{
+        MainViewModel.ViewModelFactory((requireContext().applicationContext as MainApp).database)
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -70,6 +73,9 @@ class MainFragment : Fragment() {
         updateTime()
         registerLocReceiver()
         locationUpdates()
+        model.tracks.observe(viewLifecycleOwner){
+            Log.d("MyLog", "List size: ${it.size}")
+        }
     }
 
     private fun setOnClicks() {
@@ -146,12 +152,13 @@ class MainFragment : Fragment() {
             startLocService()
         } else {
             timer?.cancel()
-
+            val track = getTrackItem()
             DialogManager.showSaveDialog(requireContext(),
-                getTrackItem(),
+                track,
                 object : DialogManager.Listener{
                 override fun onClick() {
                     showToast("Track saved!!!")
+                    model.insertTrack(track)
                 }
             })
             activity?.stopService(Intent(activity, LocationService::class.java))
